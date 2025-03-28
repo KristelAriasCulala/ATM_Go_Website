@@ -1,0 +1,305 @@
+﻿@{
+    ViewData["Title"] = "Main Menu";
+    var cardId = ViewBag.CardId;
+    var cardHolderName = ViewBag.CardHolderName;
+    var alertMessage = TempData["AlertMessage"] as string;
+    var successMessage = TempData["SuccessMessage"] as string;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #2c2c2c; 
+            color: white; 
+            font-family: Arial, sans-serif;
+            font-size: 20px; 
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 27px;
+        }
+        .btn-primary {
+            background-color: red;
+            border-color: red;
+            width: 100%;
+            margin-top: 6px;
+            padding: 10px;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            padding: 7px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 7px;
+        }
+
+        .modal-content {
+            background-color: #333; 
+            color: white;
+        }
+
+        .alert-success {
+            color: #2cc956;
+            font-size: 20px;
+            background-color: #000000;
+            border: 0px solid;
+        }
+
+        .alert-danger{
+            color: #ff0000;
+            font-size: 20px;
+            background-color: #000000;
+            border: 0px solid;
+        }
+        h1 {
+            text-align: left;
+            margin-bottom: 40px;
+            font-size: 42px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 19px;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .right-column {
+            margin-top: 19px;
+        }
+
+        .left-column, .right-column {
+            width: 48%;
+        }
+
+            .left-column .button-container,
+            .right-column .button-container {
+                display: flex;
+                justify-content: space-between;
+            }
+
+                .left-column .button-container form,
+                .right-column .button-container form {
+                    width: 48%;
+                }
+
+            .right-column .form-group {
+                margin-bottom: 20px; 
+            }
+
+            .right-column .btn-primary {
+                margin-top: 15px;
+                height: 57px;
+            }
+
+        .btn-primary:hover {
+            color: #fff;
+            background-color: #000000;
+            border-color: #000000;
+        }
+
+        .atm-image {
+            margin-top: 20px;
+            width: 100%;
+            height: 367px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, @cardHolderName</h1>
+
+        @if (!string.IsNullOrEmpty(alertMessage))
+        {
+            <div class="alert alert-danger">@alertMessage</div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert alert-success">@successMessage</div>
+        }
+
+        <div class="form-container">
+            <div class="left-column">
+                <div class="button-container">
+                    <form id="withdrawForm" method="post" onsubmit="showPinModal('WithdrawCash'); return false;">
+                        <input type="hidden" name="cardId" value="@cardId" />
+                        <div class="form-group">
+                            <label for="accountType" class="form-label">Account Type</label>
+                            <select name="accountType" class="form-control">
+                                <option value="current">Current</option>
+                                <option value="savings">Savings</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount" class="form-label">Withdraw Amount</label>
+                            <input type="number" name="amount" class="form-control" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">Withdraw Cash</button>
+                    </form>
+
+                    <form id="depositForm" method="post" onsubmit="showPinModal('DepositCash'); return false;">
+                        <input type="hidden" name="cardId" value="@cardId" />
+                        <div class="form-group">
+                            <label for="accountType" class="form-label">Account Type</label>
+                            <select name="accountType" class="form-control">
+                                <option value="current">Current</option>
+                                <option value="savings">Savings</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount" class="form-label">Deposit Amount</label>
+                            <input type="number" name="amount" class="form-control" />
+                        </div>
+                        <button type="submit" class="btn btn-primary">Deposit Cash</button>
+                    </form>
+                </div>
+
+                <form id="transferForm" method="post" onsubmit="showPinModal('TransferFunds'); return false;">
+                    <input type="hidden" name="cardId" value="@cardId" />
+                    <div class="form-group">
+                        <label for="accountType" class="form-label">Account Type</label>
+                        <select name="accountType" class="form-control">
+                            <option value="current">Current</option>
+                            <option value="savings">Savings</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="targetCardNumber" class="form-label">Enter the account number to transfer funds to.</label>
+                        <input type="text" name="targetCardNumber" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="amount" class="form-label">Enter the amount to transfer.</label>
+                        <input type="number" name="amount" class="form-control" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Transfer Funds</button>
+                </form>
+            </div>
+
+            <div class="right-column">
+                <div class="button-container">
+                    <form asp-action="CheckBalance" method="get">
+                        <input type="hidden" name="cardId" value="@cardId" />
+                        <button type="submit" class="btn btn-primary">Check Balance</button>
+                    </form>
+
+                    <form asp-action="MiniStatement" method="get">
+                        <input type="hidden" name="cardId" value="@cardId" />
+                        <button type="submit" class="btn btn-primary">Mini Statement</button>
+                    </form>
+                </div>
+
+                <!-- Change PIN Button -->
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#changePinModal">Change PIN</button>
+
+                <!-- ATM Image -->
+                <img src="~/images/atm.png" alt="ATM" class="atm-image" />
+            </div>
+        </div>
+
+        <!-- Change PIN Modal -->
+        <div class="modal fade" id="changePinModal" tabindex="-1" role="dialog" aria-labelledby="changePinModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changePinModalLabel">Change PIN</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="ChangePin" method="post">
+                            <input type="hidden" name="cardId" value="@cardId" />
+                            <div class="form-group">
+                                <label for="currentPin" class="form-label">Current PIN</label>
+                                <input type="password" name="currentPin" class="form-control" maxlength="4" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="newPin" class="form-label">New PIN</label>
+                                <input type="password" name="newPin" class="form-control" maxlength="4" required />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Change PIN</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PIN Verification Modal -->
+        <div class="modal fade" id="pinVerificationModal" tabindex="-1" role="dialog" aria-labelledby="pinVerificationModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="pinVerificationModalLabel">PIN Verification</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="pinVerificationForm" method="post" action="">
+                            <input type="hidden" name="cardId" value="@cardId" />
+                            <input type="hidden" id="actionType" name="actionType" value="" />
+                            <input type="hidden" id="amount" name="amount" value="" />
+                            <input type="hidden" id="accountType" name="accountType" value="" />
+                            <input type="hidden" id="targetCardNumber" name="targetCardNumber" value="" />
+                            <div class="form-group">
+                                <label for="pin" class="form-label">Enter PIN</label>
+                                <input type="password" name="pin" class="form-control" maxlength="4" required />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Verify PIN</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script>
+            function showPinModal(action) {
+                var form;
+                switch (action) {
+                    case 'WithdrawCash':
+                        form = document.getElementById('withdrawForm');
+                        break;
+                    case 'DepositCash':
+                        form = document.getElementById('depositForm');
+                        break;
+                    case 'TransferFunds':
+                        form = document.getElementById('transferForm');
+                        break;
+                }
+
+                document.getElementById('actionType').value = action;
+                document.getElementById('amount').value = form.querySelector('input[name="amount"]').value;
+                document.getElementById('accountType').value = form.querySelector('select[name="accountType"]').value;
+                if (action === 'TransferFunds') {
+                    document.getElementById('targetCardNumber').value = form.querySelector('input[name="targetCardNumber"]').value;
+                }
+                document.getElementById('pinVerificationForm').action = '@Url.Action("VerifyPinAndExecute", "Home")';
+                $('#pinVerificationModal').modal('show');
+            }
+        </script>
+    }
+</body>
+</html>

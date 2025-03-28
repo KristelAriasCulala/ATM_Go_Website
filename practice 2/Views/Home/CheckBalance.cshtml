@@ -1,0 +1,137 @@
+﻿@{
+    ViewData["Title"] = "Check Balance";
+    var balance = ViewBag.Balance;
+    var savingsBalance = ViewBag.SavingsBalance;
+    var cardId = ViewBag.CardId;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #2c2c2c; /* Dark gray background */
+            color: white; /* White text */
+            font-family: Arial, sans-serif;
+            font-size: 20px; /* Larger base font size */
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 26px;
+        }
+
+        .btn-primary {
+            background-color: red;
+            border-color: red;
+            width: 100%;
+            margin-top: 8px;
+            padding: 17px;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px; /* Reduced padding */
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 7px;
+        }
+
+        .modal-content {
+            background-color: #333; /* Darker modal background */
+            color: white;
+        }
+
+        .alert-danger, .alert-success {
+            color: #ff0000;
+            font-size: 20px;
+            background-color: #000000;
+            border: 0px solid;
+        }
+
+        h1 {
+            text-align: left;
+            margin-bottom: 40px;
+            font-size: 38px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 19px;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .right-column {
+            margin-top: 19px;
+        }
+
+        .left-column, .right-column {
+            width: 48%;
+        }
+
+            .left-column .button-container,
+            .right-column .button-container {
+                display: flex;
+                justify-content: space-between;
+            }
+
+                .left-column .button-container form,
+                .right-column .button-container form {
+                    width: 48%;
+                }
+
+            .right-column .form-group {
+                margin-bottom: 20px; /* Increased margin-bottom */
+            }
+
+            .right-column .btn-primary {
+                margin-top: 15px;
+                height: 285px;
+            }
+
+        .btn-primary:hover {
+            color: #fff;
+            background-color: #000000;
+            border-color: #000000;
+        }
+
+        .balance-container {
+            background-color: #444;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+            .balance-container p {
+                margin: 0;
+                font-size: 24px;
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Check Balance</h1>
+
+        <div class="balance-container">
+            <p>Your current balance is: @balance</p>
+            <p>Your savings balance is: @savingsBalance</p>
+        </div>
+
+        <a asp-action="MainMenu" asp-route-cardId="@cardId" class="btn btn-primary">Back to Main Menu</a>
+    </div>
+</body>
+</html>

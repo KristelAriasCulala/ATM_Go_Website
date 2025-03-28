@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - practice_2</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/practice_2.styles.css" asp-append-version="true" />
+    <style>
+        .header {
+            display: flex;
+            justify-content: space-between;
+        
+        }
+
+            .header .title {
+                font-size: 26px;
+                font-weight: bold;
+                color: white;
+                margin-left: 21px;
+                margin-top: 9px;
+            }
+
+            .header .logout-button {
+                background: none;
+                border: none;
+                color: #ff0000;
+                cursor: pointer;
+                font-size: 22px;
+                margin-top: 6px;
+                margin-right: 16px;
+            }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="title">ATM Go</div>
+        @if (!ViewData["Title"].ToString().Equals("Get Started") && !ViewData["Title"].ToString().Equals("Card Details") && !ViewData["Title"].ToString().Equals("Enter PIN"))
+        {
+            <form asp-action="Logout" method="post" class="logout-form">
+                <button type="submit" class="logout-button" title="Logout">
+                    Logout
+                </button>
+            </form>
+        }
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

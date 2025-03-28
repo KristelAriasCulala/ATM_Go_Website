@@ -1,0 +1,167 @@
+﻿@{
+    ViewData["Title"] = "Enter PIN";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            background-color: #2c2c2c; 
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 20px; 
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 78px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: red;
+            border-color: red;
+            width: 100%;
+            margin-top: 8px;
+            padding: 17px;
+            font-size: 20px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+
+            .btn-primary svg {
+                width: 48px;
+                height: 46px;
+                fill: white;
+                margin-top: 4px;
+            }
+
+            .btn-primary:hover {
+                transform: scale(1.1);
+            }
+
+        .form-control {
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px; 
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+            .form-control:focus {
+                background-color: #555;
+            }
+
+        .form-group {
+            margin-bottom: 7px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 38px;
+        }
+
+        input#pin {
+            color: black;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 19px;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            justify-items: center;
+            margin-top: 2rem;
+        }
+
+            .keypad button {
+                background-color: #444;
+                color: white;
+                border: 1px solid #555;
+                border-radius: 50%;
+                width: 80px; 
+                height: 80px;
+                font-size: 28px; 
+                cursor: pointer;
+                transition: background-color 0.3s ease, transform 0.2s ease;
+            }
+
+                .keypad button:hover {
+                    background-color: #555;
+                    transform: scale(1.1);
+                }
+
+            .keypad .erase {
+                background-color: #ff1a1a;
+                font-size: 22px;
+            }
+
+                .keypad .erase:hover {
+                    background-color: #ff4d4d;
+                }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enter PIN</h1>
+
+        <form asp-action="SavePin" method="post">
+            <input type="hidden" name="cardId" value="@ViewBag.CardId" />
+            <div class="form-group">
+                <label for="pin" class="form-label"></label>
+                <input type="password" id="pin" name="pin" class="form-control" maxlength="4" readonly />
+            </div>
+            <div class="keypad">
+                <button type="button" onclick="addDigit(1)">1</button>
+                <button type="button" onclick="addDigit(2)">2</button>
+                <button type="button" onclick="addDigit(3)">3</button>
+                <button type="button" onclick="addDigit(4)">4</button>
+                <button type="button" onclick="addDigit(5)">5</button>
+                <button type="button" onclick="addDigit(6)">6</button>
+                <button type="button" onclick="addDigit(7)">7</button>
+                <button type="button" onclick="addDigit(8)">8</button>
+                <button type="button" onclick="addDigit(9)">9</button>
+                <button type="button" class="erase" onclick="eraseDigit()">⌫</button>
+                <button type="button" onclick="addDigit(0)">0</button>
+                <button type="submit" class="btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M0 0h24v24H0z" fill="none" />
+                        <path d="M9 16.2l-3.5-3.5 1.4-1.4L9 13.4l7.1-7.1 1.4 1.4z" />
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    @section Scripts {
+        <script>
+            function addDigit(digit) {
+                const pinInput = document.getElementById('pin');
+                if (pinInput.value.length < 4) {
+                    pinInput.value += digit;
+                }
+            }
+
+            function eraseDigit() {
+                const pinInput = document.getElementById('pin');
+                pinInput.value = pinInput.value.slice(0, -1);
+            }
+        </script>
+    }
+</body>
+</html>

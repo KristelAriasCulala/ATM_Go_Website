@@ -1,0 +1,122 @@
+﻿@{
+    ViewData["Title"] = "Mini Statement";
+    var transactions = ViewBag.Transactions as List<practice_2.Models.Transaction>;
+    var cardId = ViewBag.CardId;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .btn-primary:hover {
+            color: #fff;
+            background-color: #000000;
+            border-color: #000000;
+        }
+        .table th, .table td {
+            padding: 0.75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+            font-size: 18px;
+        }
+        body {
+            background-color: #2c2c2c; 
+            color: white; 
+            font-family: Arial, sans-serif;
+            font-size: 20px; 
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            margin-top: 26px;
+        }
+
+        .btn-primary {
+            background-color: red;
+            border-color: red;
+            width: 100%;
+            margin-top: 8px;
+            padding: 17px;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+            .table th,
+            .table td {
+                padding: 0.75rem;
+                vertical-align: top;
+                border-top: 1px solid #dee2e6;
+            }
+
+            .table thead th {
+                vertical-align: bottom;
+                border-bottom: 2px solid #dee2e6;
+            }
+
+            .table tbody + tbody {
+                border-top: 2px solid #dee2e6;
+            }
+
+        .btn-danger {
+            background-color: #ff0000;
+            border-color: #ff0000;
+        }
+
+            .btn-danger:hover {
+                background-color: #000000;
+                border-color: #000000;
+            }
+
+        h1 {
+            text-align: left;
+            margin-bottom: 40px;
+            font-size: 38px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mini Statement</h1>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Amount</th>
+                    <th>Transaction Type</th>
+                    <th>Transaction Date</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in transactions)
+                {
+                    <tr>
+                        <td>@transaction.Amount</td>
+                        <td>@transaction.TransactionType</td>
+                        <td>@transaction.TransactionDate</td>
+                        <td>@transaction.Description</td>
+                        <td>
+                            <form asp-action="DeleteTransaction" method="post">
+                                <input type="hidden" name="transactionId" value="@transaction.Id" />
+                                <input type="hidden" name="cardId" value="@cardId" />
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <a asp-action="MainMenu" asp-route-cardId="@cardId" class="btn btn-primary">Back to Main Menu</a>
+    </div>
+</body>
+</html>
