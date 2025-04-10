@@ -9,10 +9,10 @@
 <head>
     <style>
         body {
-            background-color: #2c2c2c; 
+            background-color: #2c2c2c;
             color: white;
             font-family: Arial, sans-serif;
-            font-size: 20px; 
+            font-size: 20px;
         }
 
         .container {
@@ -85,6 +85,7 @@
             transform: translateX(100px) translateY(20px);
             margin-top: 112px;
         }
+
         .card__info,
         .card__chip-texture,
         .card__texture {
@@ -112,6 +113,7 @@
             background-color: #000000;
             border-color: #000000;
         }
+
         .card__logo,
         .card__number {
             width: 100%;
@@ -246,6 +248,10 @@
                 <div class="form-group">
                     <label asp-for="CardHolderName" class="form-label"></label>
                     <input asp-for="CardHolderName" class="form-control" oninput="updateCardName(this.value)" />
+                </div>
+                <div class="form-group">
+                    <label asp-for="Email" class="form-label">Email</label>
+                    <input asp-for="Email" class="form-control" type="email" placeholder="example@email.com" />
                 </div>
                 <div class="form-group">
                     <label asp-for="CardNumber" class="form-label"></label>

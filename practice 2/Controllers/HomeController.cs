@@ -8,7 +8,7 @@ namespace practice_2.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly String connStr = ("Server=localhost;Database=atmd;User=root;Password=");
+        private readonly String connStr = ("Server=localhost;Database=atmd_db;User=root;Password=");
 
         public HomeController(ILogger<HomeController> logger)
         {
@@ -65,9 +65,10 @@ namespace practice_2.Controllers
                 return RedirectToAction("PinPage", new { cardId = (int)existingCardId });
             }
 
-            // Insert new card details
-            using var cmd = new MySqlCommand("INSERT INTO CardDetails (CardHolderName, CardNumber, ExpiryDate, CVV, CurrentBalance, SavingsBalance) VALUES (@CardHolderName, @CardNumber, @ExpiryDate, @CVV, 1000, 1000)", conn);
+            // Insert new card details including Email field
+            using var cmd = new MySqlCommand("INSERT INTO CardDetails (CardHolderName, Email, CardNumber, ExpiryDate, CVV, CurrentBalance, SavingsBalance) VALUES (@CardHolderName, @Email, @CardNumber, @ExpiryDate, @CVV, 1000, 1000)", conn);
             cmd.Parameters.AddWithValue("@CardHolderName", cardDetails.CardHolderName);
+            cmd.Parameters.AddWithValue("@Email", cardDetails.Email);
             cmd.Parameters.AddWithValue("@CardNumber", cardDetails.CardNumber);
             cmd.Parameters.AddWithValue("@ExpiryDate", cardDetails.ExpiryDate);
             cmd.Parameters.AddWithValue("@CVV", cardDetails.CVV);
@@ -215,7 +216,7 @@ namespace practice_2.Controllers
             var targetCardId = reader.GetInt32("Id");
             var targetCardHolderName = reader.GetString("CardHolderName");
             var targetCardNumberFull = reader.GetString("CardNumber");
-            reader.Close(); 
+            reader.Close();
 
             string balanceColumn = accountType == "savings" ? "SavingsBalance" : "CurrentBalance";
 
@@ -232,7 +233,7 @@ namespace practice_2.Controllers
             var currentBalance = balanceReader.GetDecimal(balanceColumn);
             var senderCardHolderName = balanceReader.GetString("CardHolderName");
             var senderCardNumber = balanceReader.GetString("CardNumber");
-            balanceReader.Close(); 
+            balanceReader.Close();
 
             if (currentBalance == 0 || currentBalance < amount)
             {
@@ -367,13 +368,14 @@ namespace practice_2.Controllers
 
             return RedirectToAction("MiniStatement", new { cardId });
         }
+
         [HttpPost]
         public IActionResult Logout()
         {
             // Perform any necessary cleanup or session termination here
-
             return RedirectToAction("GetStarted");
         }
+
         [HttpPost]
         public IActionResult VerifyPinAndExecute(int cardId, string pin, string actionType, decimal amount, string accountType, string targetCardNumber)
         {
