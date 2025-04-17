@@ -11,7 +11,6 @@
         .header {
             display: flex;
             justify-content: space-between;
-        
         }
 
             .header .title {
@@ -20,6 +19,10 @@
                 color: white;
                 margin-left: 21px;
                 margin-top: 9px;
+            }
+
+            .header .bank-text {
+                color: #ff0000;
             }
 
             .header .logout-button {
@@ -35,7 +38,7 @@
 </head>
 <body>
     <header class="header">
-        <div class="title">ATM Go</div>
+        <div class="title">Solvela <span class="bank-text">Bank</span></div>
         @if (!ViewData["Title"].ToString().Equals("Get Started") && !ViewData["Title"].ToString().Equals("Card Details") && !ViewData["Title"].ToString().Equals("Enter PIN"))
         {
             <form asp-action="Logout" method="post" class="logout-form">
