@@ -228,7 +228,7 @@ namespace practice_2.Controllers
             {
                 // Check if PIN already exists for this card
                 using var checkCmd = new MySqlCommand(
-                    "SELECT COUNT(*) FROM PinDetails WHERE CardId = @CardId", conn, transaction);
+                    "SELECT COUNT(*) FROM pindetails WHERE CardId = @CardId", conn, transaction);
                 checkCmd.Parameters.AddWithValue("@CardId", cardId);
                 var pinExists = Convert.ToInt32(checkCmd.ExecuteScalar()) > 0;
 
@@ -236,7 +236,7 @@ namespace practice_2.Controllers
                 {
                     // Update existing PIN
                     using var updateCmd = new MySqlCommand(
-                        "UPDATE PinDetails SET Pin = @Pin WHERE CardId = @CardId", conn, transaction);
+                        "UPDATE pindetails SET Pin = @Pin WHERE CardId = @CardId", conn, transaction);
                     updateCmd.Parameters.AddWithValue("@CardId", cardId);
                     updateCmd.Parameters.AddWithValue("@Pin", pin);
                     updateCmd.ExecuteNonQuery();
@@ -245,14 +245,14 @@ namespace practice_2.Controllers
                 {
                     // Insert new PIN
                     using var insertCmd = new MySqlCommand(
-                        "INSERT INTO PinDetails (CardId, Pin) VALUES (@CardId, @Pin)", conn, transaction);
+                        "INSERT INTO pindetails (CardId, Pin) VALUES (@CardId, @Pin)", conn, transaction);
                     insertCmd.Parameters.AddWithValue("@CardId", cardId);
                     insertCmd.Parameters.AddWithValue("@Pin", pin);
                     insertCmd.ExecuteNonQuery();
 
                     // Add initial transaction only for new PINs, showing 1000 initial balance
                     using var transCmd = new MySqlCommand(
-                        "INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
+                        "INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
                         "VALUES (@CardId, @Amount, 'Account Setup', @TransactionDate, @Description)", conn, transaction);
                     transCmd.Parameters.AddWithValue("@CardId", cardId);
                     transCmd.Parameters.AddWithValue("@Amount", 1000);
