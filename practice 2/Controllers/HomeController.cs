@@ -11,9 +11,9 @@ namespace practice_2.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
-        private readonly String connStr = ("Server=localhost;Database=atmd_db;User=root;Password=");
+        private readonly String connStr = ("Server=srv477.hstgr.io;Database=u591433413_solvela;User=u591433413_solvela;Password=Solvela_Bank123$");
         private readonly HttpClient _httpClient;
-        private readonly string apiBaseUrl = "http://localhost/solvela_php_api/api/index.php";
+        private readonly string apiBaseUrl = "https://solvela.site/api/index.php";
 
         public HomeController(ILogger<HomeController> logger)
         {
@@ -62,7 +62,7 @@ namespace practice_2.Controllers
             using (var conn = new MySqlConnection(connStr))
             {
                 conn.Open();
-                using var checkCmd = new MySqlCommand("SELECT Id FROM CardDetails WHERE CardNumber = @CardNumber", conn);
+                using var checkCmd = new MySqlCommand("SELECT Id FROM carddetails WHERE CardNumber = @CardNumber", conn);
                 checkCmd.Parameters.AddWithValue("@CardNumber", cardDetails.CardNumber);
                 var result = checkCmd.ExecuteScalar();
                 if (result != null)
@@ -126,14 +126,14 @@ namespace practice_2.Controllers
                 try
                 {
                     // Double-check card doesn't exist (in case another request inserted it meanwhile)
-                    using var doubleCheckCmd = new MySqlCommand("SELECT COUNT(*) FROM CardDetails WHERE CardNumber = @CardNumber", conn, transaction);
+                    using var doubleCheckCmd = new MySqlCommand("SELECT COUNT(*) FROM carddetails WHERE CardNumber = @CardNumber", conn, transaction);
                     doubleCheckCmd.Parameters.AddWithValue("@CardNumber", formattedCardNumber);
                     var count = Convert.ToInt32(doubleCheckCmd.ExecuteScalar());
 
                     if (count > 0)
                     {
                         // Card now exists (race condition), get its ID
-                        using var getIdCmd = new MySqlCommand("SELECT Id FROM CardDetails WHERE CardNumber = @CardNumber", conn, transaction);
+                        using var getIdCmd = new MySqlCommand("SELECT Id FROM carddetails WHERE CardNumber = @CardNumber", conn, transaction);
                         getIdCmd.Parameters.AddWithValue("@CardNumber", formattedCardNumber);
                         var foundId = Convert.ToInt32(getIdCmd.ExecuteScalar());
                         transaction.Commit();
@@ -142,7 +142,7 @@ namespace practice_2.Controllers
 
                     // Card still doesn't exist, insert it with spaces (formatted) and initial balance of 1000
                     using var insertCmd = new MySqlCommand(
-                        "INSERT INTO CardDetails (CardHolderName, Email, CardNumber, ExpiryDate, CVV, CurrentBalance, SavingsBalance) " +
+                        "INSERT INTO carddetails (CardHolderName, Email, CardNumber, ExpiryDate, CVV, CurrentBalance, SavingsBalance) " +
                         "VALUES (@CardHolderName, @Email, @CardNumber, @ExpiryDate, @CVV, 1000, 0)", conn, transaction);
 
                     insertCmd.Parameters.AddWithValue("@CardHolderName", cardDetails.CardHolderName);
@@ -283,7 +283,7 @@ namespace practice_2.Controllers
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            using var cmd = new MySqlCommand("SELECT CardHolderName, CurrentBalance, SavingsBalance FROM CardDetails WHERE Id = @CardId", conn);
+            using var cmd = new MySqlCommand("SELECT CardHolderName, CurrentBalance, SavingsBalance FROM carddetails WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             using var reader = cmd.ExecuteReader();
 
@@ -313,7 +313,7 @@ namespace practice_2.Controllers
             string balanceColumn = accountType == "savings" ? "SavingsBalance" : "CurrentBalance";
             string accountTypeDescription = accountType == "savings" ? "Savings" : "Current";
 
-            using var balanceCmd = new MySqlCommand($"SELECT {balanceColumn}, CardHolderName FROM CardDetails WHERE Id = @CardId", conn);
+            using var balanceCmd = new MySqlCommand($"SELECT {balanceColumn}, CardHolderName FROM carddetails WHERE Id = @CardId", conn);
             balanceCmd.Parameters.AddWithValue("@CardId", cardId);
             using var balanceReader = balanceCmd.ExecuteReader();
 
@@ -333,7 +333,7 @@ namespace practice_2.Controllers
                 return RedirectToAction("MainMenu", new { cardId });
             }
 
-            using var cmd = new MySqlCommand($"UPDATE CardDetails SET {balanceColumn} = {balanceColumn} - @Amount WHERE Id = @CardId", conn);
+            using var cmd = new MySqlCommand($"UPDATE carddetails SET {balanceColumn} = {balanceColumn} - @Amount WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@Amount", amount);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             cmd.ExecuteNonQuery();
@@ -341,7 +341,7 @@ namespace practice_2.Controllers
             // Generate a reference number for the transaction
             var referenceNumber = "W" + DateTime.Now.ToString("yyMMddHHmm") + cardId.ToString().PadLeft(3, '0');
 
-            using var cmd2 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Withdraw', @TransactionDate, @Description)", conn);
+            using var cmd2 = new MySqlCommand("INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Withdraw', @TransactionDate, @Description)", conn);
             cmd2.Parameters.AddWithValue("@CardId", cardId);
             cmd2.Parameters.AddWithValue("@Amount", amount);
             cmd2.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
@@ -367,11 +367,11 @@ namespace practice_2.Controllers
             string balanceColumn = accountType == "savings" ? "SavingsBalance" : "CurrentBalance";
             string accountTypeDescription = accountType == "savings" ? "Savings" : "Current";
 
-            using var balanceCmd = new MySqlCommand("SELECT CardHolderName FROM CardDetails WHERE Id = @CardId", conn);
+            using var balanceCmd = new MySqlCommand("SELECT CardHolderName FROM carddetails WHERE Id = @CardId", conn);
             balanceCmd.Parameters.AddWithValue("@CardId", cardId);
             var cardHolderName = (string)balanceCmd.ExecuteScalar();
 
-            using var cmd = new MySqlCommand($"UPDATE CardDetails SET {balanceColumn} = {balanceColumn} + @Amount WHERE Id = @CardId", conn);
+            using var cmd = new MySqlCommand($"UPDATE carddetails SET {balanceColumn} = {balanceColumn} + @Amount WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@Amount", amount);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             cmd.ExecuteNonQuery();
@@ -379,7 +379,7 @@ namespace practice_2.Controllers
             // Generate a reference number for the transaction
             var referenceNumber = "D" + DateTime.Now.ToString("yyMMddHHmm") + cardId.ToString().PadLeft(3, '0');
 
-            using var cmd2 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Deposit', @TransactionDate, @Description)", conn);
+            using var cmd2 = new MySqlCommand("INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Deposit', @TransactionDate, @Description)", conn);
             cmd2.Parameters.AddWithValue("@CardId", cardId);
             cmd2.Parameters.AddWithValue("@Amount", amount);
             cmd2.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
@@ -414,7 +414,7 @@ namespace practice_2.Controllers
             conn.Open();
 
             // Check if targetCardNumber exists - search by the exact formatted number
-            using var checkCmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM CardDetails WHERE CardNumber = @CardNumber", conn);
+            using var checkCmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM carddetails WHERE CardNumber = @CardNumber", conn);
             checkCmd.Parameters.AddWithValue("@CardNumber", formattedTargetCardNumber);
             using var reader = checkCmd.ExecuteReader();
 
@@ -433,7 +433,7 @@ namespace practice_2.Controllers
             // Get sender's balance and information
             string balanceColumn = accountType == "savings" ? "SavingsBalance" : "CurrentBalance";
 
-            using var balanceCmd = new MySqlCommand($"SELECT {balanceColumn}, CardHolderName, CardNumber FROM CardDetails WHERE Id = @CardId", conn);
+            using var balanceCmd = new MySqlCommand($"SELECT {balanceColumn}, CardHolderName, CardNumber FROM carddetails WHERE Id = @CardId", conn);
             balanceCmd.Parameters.AddWithValue("@CardId", cardId);
             using var balanceReader = balanceCmd.ExecuteReader();
 
@@ -455,13 +455,13 @@ namespace practice_2.Controllers
             }
 
             // Deduct from sender's account
-            using var cmd = new MySqlCommand($"UPDATE CardDetails SET {balanceColumn} = {balanceColumn} - @Amount WHERE Id = @CardId", conn);
+            using var cmd = new MySqlCommand($"UPDATE carddetails SET {balanceColumn} = {balanceColumn} - @Amount WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@Amount", amount);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             cmd.ExecuteNonQuery();
 
             // Add to recipient's account
-            using var cmd2 = new MySqlCommand("UPDATE CardDetails SET CurrentBalance = CurrentBalance + @Amount WHERE Id = @TargetCardId", conn);
+            using var cmd2 = new MySqlCommand("UPDATE carddetails SET CurrentBalance = CurrentBalance + @Amount WHERE Id = @TargetCardId", conn);
             cmd2.Parameters.AddWithValue("@Amount", amount);
             cmd2.Parameters.AddWithValue("@TargetCardId", targetCardId);
             cmd2.ExecuteNonQuery();
@@ -473,7 +473,7 @@ namespace practice_2.Controllers
             var maskedTargetCardNumber = targetCardNumberFromDb.Substring(0, 4) + " **** " + targetCardNumberFromDb.Substring(15, 4);
 
             // Record transaction for sender
-            using var cmd3 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Transfer Out', @TransactionDate, @Description)", conn);
+            using var cmd3 = new MySqlCommand("INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Transfer Out', @TransactionDate, @Description)", conn);
             cmd3.Parameters.AddWithValue("@CardId", cardId);
             cmd3.Parameters.AddWithValue("@Amount", amount);
             cmd3.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
@@ -481,7 +481,7 @@ namespace practice_2.Controllers
             cmd3.ExecuteNonQuery();
 
             // Record transaction for recipient
-            using var cmd4 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@TargetCardId, @Amount, 'Transfer In', @TransactionDate, @Description)", conn);
+            using var cmd4 = new MySqlCommand("INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@TargetCardId, @Amount, 'Transfer In', @TransactionDate, @Description)", conn);
             cmd4.Parameters.AddWithValue("@TargetCardId", targetCardId);
             cmd4.Parameters.AddWithValue("@Amount", amount);
             cmd4.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
@@ -541,7 +541,7 @@ namespace practice_2.Controllers
             conn.Open();
 
             // Verify current PIN
-            using var verifyCmd = new MySqlCommand("SELECT Pin FROM PinDetails WHERE CardId = @CardId", conn);
+            using var verifyCmd = new MySqlCommand("SELECT Pin FROM pindetails WHERE CardId = @CardId", conn);
             verifyCmd.Parameters.AddWithValue("@CardId", cardId);
             var existingPin = (string)verifyCmd.ExecuteScalar();
 
@@ -552,7 +552,7 @@ namespace practice_2.Controllers
             }
 
             // Update to new PIN
-            using var cmd = new MySqlCommand("UPDATE PinDetails SET Pin = @NewPin WHERE CardId = @CardId", conn);
+            using var cmd = new MySqlCommand("UPDATE pindetails SET Pin = @NewPin WHERE CardId = @CardId", conn);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             cmd.Parameters.AddWithValue("@NewPin", newPin);
             cmd.ExecuteNonQuery();
@@ -567,7 +567,7 @@ namespace practice_2.Controllers
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            using var cmd = new MySqlCommand("SELECT CurrentBalance, SavingsBalance FROM CardDetails WHERE Id = @CardId", conn);
+            using var cmd = new MySqlCommand("SELECT CurrentBalance, SavingsBalance FROM carddetails WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             using var reader = cmd.ExecuteReader();
 
@@ -587,7 +587,7 @@ namespace practice_2.Controllers
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            using var cmd = new MySqlCommand("SELECT Id, Amount, TransactionType, TransactionDate, Description FROM Transactions WHERE CardId = @CardId ORDER BY TransactionDate DESC", conn);
+            using var cmd = new MySqlCommand("SELECT Id, Amount, TransactionType, TransactionDate, Description FROM transactions WHERE CardId = @CardId ORDER BY TransactionDate DESC", conn);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             using var reader = cmd.ExecuteReader();
 
@@ -616,7 +616,7 @@ namespace practice_2.Controllers
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            using var cmd = new MySqlCommand("DELETE FROM Transactions WHERE Id = @TransactionId", conn);
+            using var cmd = new MySqlCommand("DELETE FROM transactions WHERE Id = @TransactionId", conn);
             cmd.Parameters.AddWithValue("@TransactionId", transactionId);
             cmd.ExecuteNonQuery();
 
@@ -689,7 +689,7 @@ namespace practice_2.Controllers
             conn.Open();
 
             // Verify PIN
-            using var verifyCmd = new MySqlCommand("SELECT Pin FROM PinDetails WHERE CardId = @CardId", conn);
+            using var verifyCmd = new MySqlCommand("SELECT Pin FROM pindetails WHERE CardId = @CardId", conn);
             verifyCmd.Parameters.AddWithValue("@CardId", cardId);
             var existingPin = (string)verifyCmd.ExecuteScalar();
 
@@ -748,7 +748,7 @@ namespace practice_2.Controllers
                 // Get a list of all cards
                 using var conn = new MySqlConnection(connStr);
                 conn.Open();
-                using var cmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM CardDetails", conn);
+                using var cmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM carddetails", conn);
                 using var reader = cmd.ExecuteReader();
 
                 var cards = new List<CardDetails>();
@@ -784,7 +784,7 @@ namespace practice_2.Controllers
             {
                 // Update all cards with 0 balance to have 1000
                 using var updateCmd = new MySqlCommand(
-                    "UPDATE CardDetails SET CurrentBalance = 1000 WHERE CurrentBalance = 0", conn, transaction);
+                    "UPDATE carddetails SET CurrentBalance = 1000 WHERE CurrentBalance = 0", conn, transaction);
                 var rowsAffected = updateCmd.ExecuteNonQuery();
 
                 // Add transaction records for any updated accounts
@@ -792,7 +792,7 @@ namespace practice_2.Controllers
                 {
                     // Get the IDs of cards that were updated
                     using var getCardsCmd = new MySqlCommand(
-                        "SELECT Id FROM CardDetails WHERE CurrentBalance = 1000", conn, transaction);
+                        "SELECT Id FROM carddetails WHERE CurrentBalance = 1000", conn, transaction);
                     using var reader = getCardsCmd.ExecuteReader();
 
                     var updatedCardIds = new List<int>();
@@ -806,7 +806,7 @@ namespace practice_2.Controllers
                     foreach (var updatedCardId in updatedCardIds)
                     {
                         using var transCmd = new MySqlCommand(
-                            "INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
+                            "INSERT INTO transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
                             "VALUES (@CardId, @Amount, 'Account Update', @TransactionDate, @Description)", conn, transaction);
                         transCmd.Parameters.AddWithValue("@CardId", updatedCardId);
                         transCmd.Parameters.AddWithValue("@Amount", 1000);
