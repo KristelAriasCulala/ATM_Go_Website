@@ -237,6 +237,37 @@
         .card__texture {
             background-image: linear-gradient(-80deg,hsla(0,0%,100%,0.3) 25%,hsla(0,0%,100%,0) 45%);
         }
+
+        .input-note {
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 3px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            color: white;
+        }
+
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #75b798;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        .alert-info {
+            background-color: rgba(23, 162, 184, 0.2);
+            color: #6edff6;
+            border: 1px solid rgba(23, 162, 184, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -244,27 +275,35 @@
         <div>
             <h1>Card Details</h1>
 
-            <form asp-action="SaveCardDetails" method="post">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger">
+                    <div asp-validation-summary="All"></div>
+                </div>
+            }
+
+            <form asp-action="SaveCardDetails" method="post" id="cardDetailsForm">
                 <div class="form-group">
-                    <label asp-for="CardHolderName" class="form-label"></label>
-                    <input asp-for="CardHolderName" class="form-control" oninput="updateCardName(this.value)" />
+                    <label asp-for="CardHolderName" class="form-label">Card Holder Name</label>
+                    <input asp-for="CardHolderName" class="form-control" oninput="updateCardName(this.value)" required />
                 </div>
                 <div class="form-group">
                     <label asp-for="Email" class="form-label">Email</label>
-                    <input asp-for="Email" class="form-control" type="email" placeholder="example@email.com" />
+                    <input asp-for="Email" class="form-control" type="email" placeholder="example@email.com" required />
                 </div>
                 <div class="form-group">
-                    <label asp-for="CardNumber" class="form-label"></label>
-                    <input asp-for="CardNumber" class="form-control" placeholder="0000-0000-0000-0000" oninput="formatCardNumber(this); updateCardNumber(this.value)" maxlength="19" />
+                    <label asp-for="CardNumber" class="form-label">Card Number</label>
+                    <input asp-for="CardNumber" class="form-control" placeholder="0000 0000 0000 0000" oninput="formatCardNumber(this); updateCardNumber(this.value)" maxlength="19" required />
+                    <div class="input-note">Format: 0000 0000 0000 0000</div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label asp-for="ExpiryDate" class="form-label"></label>
-                        <input asp-for="ExpiryDate" class="form-control" placeholder="MM/YY" oninput="formatExpiryDate(this); updateCardExpiry(this.value)" maxlength="5" />
+                        <label asp-for="ExpiryDate" class="form-label">Expiry Date</label>
+                        <input asp-for="ExpiryDate" class="form-control" placeholder="MM/YY" oninput="formatExpiryDate(this); updateCardExpiry(this.value)" maxlength="5" required />
                     </div>
                     <div class="form-group">
-                        <label asp-for="CVV" class="form-label"></label>
-                        <input asp-for="CVV" class="form-control" maxlength="3" />
+                        <label asp-for="CVV" class="form-label">CVV</label>
+                        <input asp-for="CVV" class="form-control" maxlength="3" required />
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Save Card</button>
@@ -310,12 +349,17 @@
     @section Scripts {
         <script>
             function formatCardNumber(input) {
+                // Remove any non-digit characters
                 let value = input.value.replace(/\D/g, '');
+
+                // Format with spaces after every 4 digits
                 let formattedValue = '';
                 for (let i = 0; i < value.length; i += 4) {
-                    if (i > 0) formattedValue += '-';
-                    formattedValue += value.substring(i, i + 4);
+                    if (i > 0) formattedValue += ' ';
+                    formattedValue += value.substring(i, Math.min(i + 4, value.length));
                 }
+
+                // Set the formatted value back to the input
                 input.value = formattedValue;
             }
 
@@ -329,19 +373,99 @@
 
             function updateCardNumber(value) {
                 const cardNumberElement = document.getElementById('cardNumber');
-                const formattedValue = value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-                cardNumberElement.innerHTML = formattedValue || '0123 4567 8901 2345';
+
+                // Clean the input value by removing all non-digits
+                const cleanValue = value.replace(/\D/g, '');
+
+                // For display on the card, format with spaces between every 4 digits
+                const formattedValue = cleanValue.replace(/(.{4})/g, '$1 ').trim();
+
+                // Update the card display - dynamically create spans for each digit group
+                if (formattedValue) {
+                    let groups = formattedValue.split(' ');
+                    let html = '';
+                    for (let i = 0; i < 4; i++) {
+                        let group = i < groups.length ? groups[i] : '0000';
+                        html += `<span class="card__digit-group">${group}</span>`;
+                    }
+                    cardNumberElement.innerHTML = html;
+                } else {
+                    cardNumberElement.innerHTML = `
+                        <span class="card__digit-group">0000</span>
+                        <span class="card__digit-group">0000</span>
+                        <span class="card__digit-group">0000</span>
+                        <span class="card__digit-group">0000</span>
+                    `;
+                }
             }
 
             function updateCardExpiry(value) {
                 const cardExpiryElement = document.getElementById('cardExpiry');
-                cardExpiryElement.innerHTML = value || '01/38';
+                cardExpiryElement.innerHTML = value || '00/00';
             }
 
             function updateCardName(value) {
                 const cardNameElement = document.getElementById('cardName');
-                cardNameElement.innerHTML = value || 'Kristel A. Culala';
+                cardNameElement.innerHTML = value || 'Card Holder Name';
             }
+
+            // Add event listener to form submission
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if form exists
+                const form = document.getElementById('cardDetailsForm');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        // Prepare card number for submission by removing spaces
+                        const cardNumberInput = form.querySelector('input[name="CardNumber"]');
+                        if (cardNumberInput) {
+                            // Store the display value for validation
+                            const displayValue = cardNumberInput.value;
+
+                            // Validate required fields
+                            const cardHolderName = form.querySelector('input[name="CardHolderName"]').value;
+                            const email = form.querySelector('input[name="Email"]').value;
+                            const expiryDate = form.querySelector('input[name="ExpiryDate"]').value;
+                            const cvv = form.querySelector('input[name="CVV"]').value;
+
+                            if (!cardHolderName || !email || !displayValue || !expiryDate || !cvv) {
+                                e.preventDefault();
+                                alert('Please fill in all required fields');
+                                return false;
+                            }
+
+                            // Validate card number format (0000 0000 0000 0000)
+                            const cardNumberRegex = /^\d{4} \d{4} \d{4} \d{4}$/;
+                            if (!cardNumberRegex.test(displayValue)) {
+                                e.preventDefault();
+                                alert('Card number must be in the format 0000 0000 0000 0000');
+                                return false;
+                            }
+
+                            // Validate CVV (3 digits)
+                            const cvvRegex = /^\d{3}$/;
+                            if (!cvvRegex.test(cvv)) {
+                                e.preventDefault();
+                                alert('CVV must be exactly 3 digits');
+                                return false;
+                            }
+
+                            // Before submission, store the raw digits in a hidden field
+                            // so the server gets the card number without spaces
+                            const rawDigits = displayValue.replace(/\s/g, '');
+
+                            // Create a hidden field with the cleaned number
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'RawCardNumber';
+                            hiddenInput.value = rawDigits;
+                            form.appendChild(hiddenInput);
+                        }
+
+                        // Form is valid, continue with submission
+                        return true;
+                    });
+                }
+            });
         </script>
     }
 </body>

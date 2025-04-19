@@ -44,9 +44,9 @@ namespace practice_2.Controllers
                 return View("CardDetails");
             }
 
-            if (!System.Text.RegularExpressions.Regex.IsMatch(cardDetails.CardNumber, @"^\d{4}-\d{4}-\d{4}-\d{4}$"))
+            if (!System.Text.RegularExpressions.Regex.IsMatch(cardDetails.CardNumber, @"^\d{4} \d{4} \d{4} \d{4}$"))
             {
-                ModelState.AddModelError("CardNumber", "Card number must be in the format 0000-0000-0000-0000.");
+                ModelState.AddModelError("CardNumber", "Card number must be in the format 0000 0000 0000 0000.");
                 return View("CardDetails");
             }
 
@@ -57,6 +57,7 @@ namespace practice_2.Controllers
             }
 
             // First, check if the card exists before any API call or insertions
+            // Search with the formatted card number
             int? existingCardId = null;
             using (var conn = new MySqlConnection(connStr))
             {
@@ -77,12 +78,19 @@ namespace practice_2.Controllers
                 return RedirectToAction("PinPage", new { cardId = existingCardId.Value });
             }
 
+            // Store the formatted card number
+            string formattedCardNumber = cardDetails.CardNumber;
+
             // Try API only if card doesn't exist
             int newCardId = 0;
             bool apiSuccess = false;
 
             try
             {
+                // Set initial balance to 1000
+                cardDetails.CurrentBalance = 1000;
+                cardDetails.SavingsBalance = 0;
+
                 var json = JsonSerializer.Serialize(cardDetails);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"{apiBaseUrl}?endpoint=card-details", content);
@@ -119,27 +127,27 @@ namespace practice_2.Controllers
                 {
                     // Double-check card doesn't exist (in case another request inserted it meanwhile)
                     using var doubleCheckCmd = new MySqlCommand("SELECT COUNT(*) FROM CardDetails WHERE CardNumber = @CardNumber", conn, transaction);
-                    doubleCheckCmd.Parameters.AddWithValue("@CardNumber", cardDetails.CardNumber);
+                    doubleCheckCmd.Parameters.AddWithValue("@CardNumber", formattedCardNumber);
                     var count = Convert.ToInt32(doubleCheckCmd.ExecuteScalar());
 
                     if (count > 0)
                     {
                         // Card now exists (race condition), get its ID
                         using var getIdCmd = new MySqlCommand("SELECT Id FROM CardDetails WHERE CardNumber = @CardNumber", conn, transaction);
-                        getIdCmd.Parameters.AddWithValue("@CardNumber", cardDetails.CardNumber);
+                        getIdCmd.Parameters.AddWithValue("@CardNumber", formattedCardNumber);
                         var foundId = Convert.ToInt32(getIdCmd.ExecuteScalar());
                         transaction.Commit();
                         return RedirectToAction("PinPage", new { cardId = foundId });
                     }
 
-                    // Card still doesn't exist, insert it
+                    // Card still doesn't exist, insert it with spaces (formatted) and initial balance of 1000
                     using var insertCmd = new MySqlCommand(
                         "INSERT INTO CardDetails (CardHolderName, Email, CardNumber, ExpiryDate, CVV, CurrentBalance, SavingsBalance) " +
-                        "VALUES (@CardHolderName, @Email, @CardNumber, @ExpiryDate, @CVV, 0, 0)", conn, transaction);
+                        "VALUES (@CardHolderName, @Email, @CardNumber, @ExpiryDate, @CVV, 1000, 0)", conn, transaction);
 
                     insertCmd.Parameters.AddWithValue("@CardHolderName", cardDetails.CardHolderName);
                     insertCmd.Parameters.AddWithValue("@Email", cardDetails.Email);
-                    insertCmd.Parameters.AddWithValue("@CardNumber", cardDetails.CardNumber);
+                    insertCmd.Parameters.AddWithValue("@CardNumber", formattedCardNumber); // Store with spaces
                     insertCmd.Parameters.AddWithValue("@ExpiryDate", cardDetails.ExpiryDate);
                     insertCmd.Parameters.AddWithValue("@CVV", cardDetails.CVV);
                     insertCmd.ExecuteNonQuery();
@@ -185,14 +193,14 @@ namespace practice_2.Controllers
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Create an initial account opened transaction
+                    // Create an initial account opened transaction with 1000 initial balance
                     var transPayload = new
                     {
                         CardId = cardId,
-                        Amount = 0,
+                        Amount = 1000,
                         TransactionType = "Account Setup",
                         TransactionDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        Description = "Account activated"
+                        Description = "Account activated with initial balance of 1000"
                     };
 
                     var transJson = JsonSerializer.Serialize(transPayload);
@@ -242,14 +250,14 @@ namespace practice_2.Controllers
                     insertCmd.Parameters.AddWithValue("@Pin", pin);
                     insertCmd.ExecuteNonQuery();
 
-                    // Add initial transaction only for new PINs
+                    // Add initial transaction only for new PINs, showing 1000 initial balance
                     using var transCmd = new MySqlCommand(
                         "INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
                         "VALUES (@CardId, @Amount, 'Account Setup', @TransactionDate, @Description)", conn, transaction);
                     transCmd.Parameters.AddWithValue("@CardId", cardId);
-                    transCmd.Parameters.AddWithValue("@Amount", 0);
+                    transCmd.Parameters.AddWithValue("@Amount", 1000);
                     transCmd.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
-                    transCmd.Parameters.AddWithValue("@Description", "Account activated");
+                    transCmd.Parameters.AddWithValue("@Description", "Account activated with initial balance of 1000");
                     transCmd.ExecuteNonQuery();
                 }
 
@@ -293,9 +301,9 @@ namespace practice_2.Controllers
         [HttpPost]
         public IActionResult WithdrawCash(int cardId, decimal amount, string accountType)
         {
-            if (amount < 500 || amount % 100 != 0)
+            if (amount < 1000 || amount % 100 != 0)
             {
-                TempData["AlertMessage"] = "Withdrawal amount must be in increments of 100 starting from 500.";
+                TempData["AlertMessage"] = "Withdrawal amount must be starting from 1000.";
                 return RedirectToAction("MainMenu", new { cardId });
             }
 
@@ -347,9 +355,9 @@ namespace practice_2.Controllers
         [HttpPost]
         public IActionResult DepositCash(int cardId, decimal amount, string accountType)
         {
-            if (amount < 500 || amount % 100 != 0)
+            if (amount < 1000 || amount % 100 != 0)
             {
-                TempData["AlertMessage"] = "Deposit amount must be in increments of 100 starting from 500.";
+                TempData["AlertMessage"] = "Deposit amount must be starting from 1000.";
                 return RedirectToAction("MainMenu", new { cardId });
             }
 
@@ -385,19 +393,29 @@ namespace practice_2.Controllers
         [HttpPost]
         public IActionResult TransferFunds(int cardId, string targetCardNumber, decimal amount, string accountType)
         {
-            // Keep existing implementation
-            if (amount < 500 || amount % 100 != 0)
+            // Check if amount is at least 1000 and is a multiple of 1000
+            if (amount < 1000 || amount % 1000 != 0)
             {
-                TempData["AlertMessage"] = "Transfer amount must be in increments of 100 starting from 500.";
+                TempData["AlertMessage"] = "Transfer amount must be starting from 1000.";
                 return RedirectToAction("MainMenu", new { cardId });
             }
+
+            // Check if targetCardNumber is null or empty
+            if (string.IsNullOrEmpty(targetCardNumber))
+            {
+                TempData["AlertMessage"] = "Please enter a card number to transfer funds to.";
+                return RedirectToAction("MainMenu", new { cardId });
+            }
+
+            // Store the target card number as is (with spaces)
+            string formattedTargetCardNumber = targetCardNumber;
 
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
-            // Check if targetCardNumber exists
-            using var checkCmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM CardDetails WHERE CardNumber = @TargetCardNumber", conn);
-            checkCmd.Parameters.AddWithValue("@TargetCardNumber", targetCardNumber);
+            // Check if targetCardNumber exists - search by the exact formatted number
+            using var checkCmd = new MySqlCommand("SELECT Id, CardHolderName, CardNumber FROM CardDetails WHERE CardNumber = @CardNumber", conn);
+            checkCmd.Parameters.AddWithValue("@CardNumber", formattedTargetCardNumber);
             using var reader = checkCmd.ExecuteReader();
 
             if (!reader.Read())
@@ -409,9 +427,10 @@ namespace practice_2.Controllers
 
             var targetCardId = reader.GetInt32("Id");
             var targetCardHolderName = reader.GetString("CardHolderName");
-            var targetCardNumberFull = reader.GetString("CardNumber");
+            var targetCardNumberFromDb = reader.GetString("CardNumber");
             reader.Close();
 
+            // Get sender's balance and information
             string balanceColumn = accountType == "savings" ? "SavingsBalance" : "CurrentBalance";
 
             using var balanceCmd = new MySqlCommand($"SELECT {balanceColumn}, CardHolderName, CardNumber FROM CardDetails WHERE Id = @CardId", conn);
@@ -435,21 +454,25 @@ namespace practice_2.Controllers
                 return RedirectToAction("MainMenu", new { cardId });
             }
 
+            // Deduct from sender's account
             using var cmd = new MySqlCommand($"UPDATE CardDetails SET {balanceColumn} = {balanceColumn} - @Amount WHERE Id = @CardId", conn);
             cmd.Parameters.AddWithValue("@Amount", amount);
             cmd.Parameters.AddWithValue("@CardId", cardId);
             cmd.ExecuteNonQuery();
 
+            // Add to recipient's account
             using var cmd2 = new MySqlCommand("UPDATE CardDetails SET CurrentBalance = CurrentBalance + @Amount WHERE Id = @TargetCardId", conn);
             cmd2.Parameters.AddWithValue("@Amount", amount);
             cmd2.Parameters.AddWithValue("@TargetCardId", targetCardId);
             cmd2.ExecuteNonQuery();
 
+            // For display purposes - mask card numbers
             var maskedSenderName = senderCardHolderName.Substring(0, 1) + "***";
-            var maskedSenderCardNumber = senderCardNumber.Substring(0, 4) + "****" + senderCardNumber.Substring(8, 4) + "****";
+            var maskedSenderCardNumber = senderCardNumber.Substring(0, 4) + " **** " + senderCardNumber.Substring(15, 4);
             var maskedTargetName = targetCardHolderName.Substring(0, 1) + "***";
-            var maskedTargetCardNumber = targetCardNumberFull.Substring(0, 4) + "****" + targetCardNumberFull.Substring(8, 4) + "****";
+            var maskedTargetCardNumber = targetCardNumberFromDb.Substring(0, 4) + " **** " + targetCardNumberFromDb.Substring(15, 4);
 
+            // Record transaction for sender
             using var cmd3 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@CardId, @Amount, 'Transfer Out', @TransactionDate, @Description)", conn);
             cmd3.Parameters.AddWithValue("@CardId", cardId);
             cmd3.Parameters.AddWithValue("@Amount", amount);
@@ -457,6 +480,7 @@ namespace practice_2.Controllers
             cmd3.Parameters.AddWithValue("@Description", $"Transferred to {maskedTargetName} ({maskedTargetCardNumber})");
             cmd3.ExecuteNonQuery();
 
+            // Record transaction for recipient
             using var cmd4 = new MySqlCommand("INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) VALUES (@TargetCardId, @Amount, 'Transfer In', @TransactionDate, @Description)", conn);
             cmd4.Parameters.AddWithValue("@TargetCardId", targetCardId);
             cmd4.Parameters.AddWithValue("@Amount", amount);
@@ -609,6 +633,13 @@ namespace practice_2.Controllers
         [HttpPost]
         public async Task<IActionResult> VerifyPinAndExecute(int cardId, string pin, string actionType, decimal amount, string accountType, string targetCardNumber)
         {
+            // Check if PIN is null or empty
+            if (string.IsNullOrEmpty(pin))
+            {
+                TempData["AlertMessage"] = "Please enter your PIN.";
+                return RedirectToAction("MainMenu", new { cardId });
+            }
+
             try
             {
                 // Try to verify PIN using the API
@@ -633,6 +664,7 @@ namespace practice_2.Controllers
                             case "DepositCash":
                                 return DepositCash(cardId, amount, accountType);
                             case "TransferFunds":
+                                // Process transfer with the targetCardNumber as is (with spaces)
                                 return TransferFunds(cardId, targetCardNumber, amount, accountType);
                             default:
                                 TempData["AlertMessage"] = "Invalid action.";
@@ -675,6 +707,7 @@ namespace practice_2.Controllers
                 case "DepositCash":
                     return DepositCash(cardId, amount, accountType);
                 case "TransferFunds":
+                    // Process transfer with the targetCardNumber as is (with spaces)
                     return TransferFunds(cardId, targetCardNumber, amount, accountType);
                 default:
                     TempData["AlertMessage"] = "Invalid action.";
@@ -725,7 +758,7 @@ namespace practice_2.Controllers
                     {
                         Id = reader.GetInt32("Id"),
                         CardHolderName = reader.GetString("CardHolderName"),
-                        CardNumber = reader.GetString("CardNumber")
+                        CardNumber = reader.GetString("CardNumber") // Already formatted in database
                     });
                 }
                 model["Cards"] = cards;
@@ -736,6 +769,64 @@ namespace practice_2.Controllers
             }
 
             return View(model);
+        }
+
+        // Method to update existing cards to have initial balance of 1000
+        public IActionResult UpdateExistingAccountBalances()
+        {
+            using var conn = new MySqlConnection(connStr);
+            conn.Open();
+
+            // Start a transaction
+            using var transaction = conn.BeginTransaction();
+
+            try
+            {
+                // Update all cards with 0 balance to have 1000
+                using var updateCmd = new MySqlCommand(
+                    "UPDATE CardDetails SET CurrentBalance = 1000 WHERE CurrentBalance = 0", conn, transaction);
+                var rowsAffected = updateCmd.ExecuteNonQuery();
+
+                // Add transaction records for any updated accounts
+                if (rowsAffected > 0)
+                {
+                    // Get the IDs of cards that were updated
+                    using var getCardsCmd = new MySqlCommand(
+                        "SELECT Id FROM CardDetails WHERE CurrentBalance = 1000", conn, transaction);
+                    using var reader = getCardsCmd.ExecuteReader();
+
+                    var updatedCardIds = new List<int>();
+                    while (reader.Read())
+                    {
+                        updatedCardIds.Add(reader.GetInt32(0));
+                    }
+                    reader.Close();
+
+                    // Add transaction records for each updated card
+                    foreach (var updatedCardId in updatedCardIds)
+                    {
+                        using var transCmd = new MySqlCommand(
+                            "INSERT INTO Transactions (CardId, Amount, TransactionType, TransactionDate, Description) " +
+                            "VALUES (@CardId, @Amount, 'Account Update', @TransactionDate, @Description)", conn, transaction);
+                        transCmd.Parameters.AddWithValue("@CardId", updatedCardId);
+                        transCmd.Parameters.AddWithValue("@Amount", 1000);
+                        transCmd.Parameters.AddWithValue("@TransactionDate", DateTime.Now);
+                        transCmd.Parameters.AddWithValue("@Description", "Initial balance updated to 1000");
+                        transCmd.ExecuteNonQuery();
+                    }
+                }
+
+                transaction.Commit();
+                TempData["SuccessMessage"] = $"Updated {rowsAffected} accounts to have initial balance of 1000.";
+            }
+            catch (Exception ex)
+            {
+                transaction.Rollback();
+                _logger.LogError($"Failed to update account balances: {ex.Message}");
+                TempData["AlertMessage"] = "Failed to update account balances.";
+            }
+
+            return RedirectToAction("Index");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
