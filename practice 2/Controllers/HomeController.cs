@@ -581,38 +581,57 @@ namespace practice_2.Controllers
             return View();
         }
 
-        public IActionResult MiniStatement(int cardId)
+       public IActionResult MiniStatement(int cardId, int page = 1, int pageSize = 10)
+{
+    using var conn = new MySqlConnection(connStr);
+    conn.Open();
+
+    // Get total count of transactions for this card
+    using var countCmd = new MySqlCommand("SELECT COUNT(*) FROM transactions WHERE CardId = @CardId", conn);
+    countCmd.Parameters.AddWithValue("@CardId", cardId);
+    var totalCount = Convert.ToInt32(countCmd.ExecuteScalar());
+
+    // Calculate total pages
+    var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+    // Get paginated transactions
+    using var cmd = new MySqlCommand(
+        "SELECT Id, Amount, TransactionType, TransactionDate, Description " +
+        "FROM transactions WHERE CardId = @CardId " +
+        "ORDER BY TransactionDate DESC " +
+        "LIMIT @Offset, @PageSize", conn);
+    
+    cmd.Parameters.AddWithValue("@CardId", cardId);
+    cmd.Parameters.AddWithValue("@Offset", (page - 1) * pageSize);
+    cmd.Parameters.AddWithValue("@PageSize", pageSize);
+
+    using var reader = cmd.ExecuteReader();
+
+    var transactions = new List<Transaction>();
+    while (reader.Read())
+    {
+        transactions.Add(new Transaction
         {
-            // Keep existing implementation
-            using var conn = new MySqlConnection(connStr);
-            conn.Open();
+            Id = reader.GetInt32("Id"),
+            Amount = reader.GetDecimal("Amount"),
+            TransactionType = reader.GetString("TransactionType"),
+            TransactionDate = reader.GetDateTime("TransactionDate"),
+            Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString("Description")
+        });
+    }
 
-            using var cmd = new MySqlCommand("SELECT Id, Amount, TransactionType, TransactionDate, Description FROM transactions WHERE CardId = @CardId ORDER BY TransactionDate DESC", conn);
-            cmd.Parameters.AddWithValue("@CardId", cardId);
-            using var reader = cmd.ExecuteReader();
+    ViewBag.Transactions = transactions;
+    ViewBag.CardId = cardId;
+    ViewBag.CurrentPage = page;
+    ViewBag.TotalPages = totalPages;
+    ViewBag.PageSize = pageSize;
 
-            var transactions = new List<Transaction>();
-            while (reader.Read())
-            {
-                transactions.Add(new Transaction
-                {
-                    Id = reader.GetInt32("Id"),
-                    Amount = reader.GetDecimal("Amount"),
-                    TransactionType = reader.GetString("TransactionType"),
-                    TransactionDate = reader.GetDateTime("TransactionDate"),
-                    Description = reader.IsDBNull(reader.GetOrdinal("Description")) ? null : reader.GetString("Description")
-                });
-            }
-
-            ViewBag.Transactions = transactions;
-            ViewBag.CardId = cardId;
-            return View();
-        }
+    return View();
+}
 
         [HttpPost]
-        public IActionResult DeleteTransaction(int transactionId, int cardId)
+        public IActionResult DeleteTransaction(int transactionId, int cardId, int currentPage)
         {
-            // Keep existing implementation
             using var conn = new MySqlConnection(connStr);
             conn.Open();
 
@@ -620,7 +639,8 @@ namespace practice_2.Controllers
             cmd.Parameters.AddWithValue("@TransactionId", transactionId);
             cmd.ExecuteNonQuery();
 
-            return RedirectToAction("MiniStatement", new { cardId });
+            // Redirect back to the same page after deletion
+            return RedirectToAction("MiniStatement", new { cardId, page = currentPage });
         }
 
         [HttpPost]

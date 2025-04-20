@@ -2,6 +2,9 @@
     ViewData["Title"] = "Mini Statement";
     var transactions = ViewBag.Transactions as List<practice_2.Models.Transaction>;
     var cardId = ViewBag.CardId;
+    var currentPage = ViewBag.CurrentPage;
+    var totalPages = ViewBag.TotalPages;
+    var pageSize = ViewBag.PageSize;
 }
 
 <!DOCTYPE html>
@@ -13,17 +16,19 @@
             background-color: #000000;
             border-color: #000000;
         }
+
         .table th, .table td {
             padding: 0.75rem;
             vertical-align: top;
             border-top: 1px solid #dee2e6;
             font-size: 18px;
         }
+
         body {
-            background-color: #2c2c2c; 
-            color: white; 
+            background-color: #2c2c2c;
+            color: white;
             font-family: Arial, sans-serif;
-            font-size: 20px; 
+            font-size: 20px;
         }
 
         .container {
@@ -80,6 +85,42 @@
             margin-bottom: 40px;
             font-size: 38px;
         }
+
+        /* Pagination styles that match your design */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+        }
+
+        .page-item {
+            margin: 0 4px;
+        }
+
+        .page-link {
+            padding: 8px 16px;
+            background-color: red;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 18px;
+        }
+
+        .page-item.active .page-link {
+            background-color: black;
+            border-color: black;
+        }
+
+        .page-link:hover {
+            background-color: black;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -97,24 +138,69 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var transaction in transactions)
+                @if (transactions.Count > 0)
+                {
+                    @foreach (var transaction in transactions)
+                    {
+                        <tr>
+                            <td>@transaction.Amount</td>
+                            <td>@transaction.TransactionType</td>
+                            <td>@transaction.TransactionDate</td>
+                            <td>@transaction.Description</td>
+                            <td>
+                                <form asp-action="DeleteTransaction" method="post">
+                                    <input type="hidden" name="transactionId" value="@transaction.Id" />
+                                    <input type="hidden" name="cardId" value="@cardId" />
+                                    <input type="hidden" name="currentPage" value="@currentPage" />
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
                 {
                     <tr>
-                        <td>@transaction.Amount</td>
-                        <td>@transaction.TransactionType</td>
-                        <td>@transaction.TransactionDate</td>
-                        <td>@transaction.Description</td>
-                        <td>
-                            <form asp-action="DeleteTransaction" method="post">
-                                <input type="hidden" name="transactionId" value="@transaction.Id" />
-                                <input type="hidden" name="cardId" value="@cardId" />
-                                <button type="submit" class="btn btn-danger">Delete</button>
-                            </form>
-                        </td>
+                        <td colspan="5" class="text-center">No transactions found</td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        <!-- Pagination controls -->
+        @if (totalPages > 1)
+        {
+            <div class="pagination-container">
+                <ul class="pagination">
+                    @if (currentPage > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("MiniStatement", new { cardId = cardId, page = currentPage - 1 })">
+                                Previous
+                            </a>
+                        </li>
+                    }
+
+                    @for (int i = 1; i <= totalPages; i++)
+                    {
+                        <li class="page-item @(i == currentPage ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("MiniStatement", new { cardId = cardId, page = i })">
+                                @i
+                            </a>
+                        </li>
+                    }
+
+                    @if (currentPage < totalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("MiniStatement", new { cardId = cardId, page = currentPage + 1 })">
+                                Next
+                            </a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
 
         <a asp-action="MainMenu" asp-route-cardId="@cardId" class="btn btn-primary">Back to Main Menu</a>
     </div>
